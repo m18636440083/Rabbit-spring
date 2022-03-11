@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <!--配置连接    -->
+    <!--1.配置连接，启动生产者确认机制: publisher-confirms="true"-->
+    <rabbit:connection-factory
+        id="connectionFactory"
+        host="192.168.184.128"
+        port="5672"
+        username="yandong"
+        password="123456"
+        virtual-host="/yandong"
+        publisher-confirms="true"
+    />
+<!--    &lt;!&ndash;配置队列    &ndash;&gt;-->
+<!--    <rabbit:queue name="test_spring_queue_1"/>-->
+
+<!--    &lt;!&ndash;设置队列ttl演示    &ndash;&gt;-->
+<!--    &lt;!&ndash;2.重新配置一个队列，同时，对队列中的消息设置过期时间&ndash;&gt;-->
+<!--    <rabbit:queue name="test_spring_queue_ttl" auto-declare="true">-->
+<!--        <rabbit:queue-arguments>-->
+<!--            <entry key="x-message-ttl" value-type="long" value="5000"/>-->
+<!--        </rabbit:queue-arguments>-->
+<!--    </rabbit:queue>-->
+
+    <!--设置消息ttl演示    -->
+    <!--2.配置队列-->
+    <rabbit:queue name="test_spring_queue_ttl_2"/>
+
+    <!--配置rabbitAdmin 主要用于在java代码中对队列的管理，用于创建，绑定，删除队列与交换机，发送消息等    -->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--配置topic类型路由，队列绑定到交换机    -->
+    <rabbit:topic-exchange name="spring_topic_exchange">
+        <rabbit:bindings>
+            <rabbit:binding pattern="message.#" queue="test_spring_queue_ttl_2"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+    <!--配置消息对象json转换类    -->
+    <bean id="jackson2JsonMessageConverter" class="org.springframework.amqp.support.converter.Jackson2JsonMessageConverter"/>
+
+    <!--配置RabbitTemplate（消息生产者）    -->
+    <rabbit:template id="rabbitTemplate"
+                     connection-factory="connectionFactory"
+                     exchange="spring_topic_exchange"
+                     message-converter="jackson2JsonMessageConverter"
+                     confirm-callback="msgSendConfirmCallback"
+    />
+
+    <!--7.确认机制处理类-->
+    <bean id="msgSendConfirmCallback" class="org.yandong.confirm.MsgSendConfirmCallback"/>
+
+</beans>
